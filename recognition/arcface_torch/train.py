@@ -66,7 +66,7 @@ def main(args):
 
     opt_backbone = torch.optim.SGD(
         params=[{'params': backbone.parameters()}],
-        lr=cfg.lr / 512 * cfg.batch_size * world_size,
+        lr=cfg.lr / 512 * cfg.batch_size * world_size * 0.1,
         momentum=0.9, weight_decay=cfg.weight_decay)
     opt_pfc = torch.optim.SGD(
         params=[{'params': module_partial_fc.parameters()}],
@@ -96,7 +96,7 @@ def main(args):
 
     val_target = cfg.val_targets
     callback_verification = CallBackVerification(2000, rank, val_target, cfg.rec)
-    callback_logging = CallBackLogging(50, rank, cfg.total_step, cfg.batch_size, world_size, None)
+    callback_logging = CallBackLogging(50, rank, cfg.total_step, cfg.batch_size, world_size, cfg.output)
     callback_checkpoint = CallBackModelCheckpoint(rank, cfg.output)
 
     loss = AverageMeter()
@@ -125,8 +125,8 @@ def main(args):
             opt_backbone.zero_grad()
             opt_pfc.zero_grad()
             loss.update(loss_v, 1)
-            callback_logging(global_step, loss, epoch, cfg.fp16, scheduler_backbone.get_last_lr()[0], grad_amp)
-            callback_verification(global_step, backbone)
+            results = callback_verification(global_step, backbone)
+            callback_logging(global_step, loss, results, epoch, cfg.fp16, scheduler_backbone.get_last_lr()[0], grad_amp)
             scheduler_backbone.step()
             scheduler_pfc.step()
         callback_checkpoint(global_step, backbone, module_partial_fc)

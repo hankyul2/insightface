@@ -7,6 +7,7 @@ import torch
 
 from eval import verification
 from utils.utils_logging import AverageMeter
+from torch.utils.tensorboard import SummaryWriter
 
 
 class CallBackVerification(object):
@@ -32,6 +33,7 @@ class CallBackVerification(object):
             logging.info(
                 '[%s][%d]Accuracy-Highest: %1.5f' % (self.ver_name_list[i], global_step, self.highest_acc_list[i]))
             results.append(acc2)
+        return results
 
     def init_dataset(self, val_targets, data_dir, image_size):
         for name in val_targets:
@@ -44,19 +46,21 @@ class CallBackVerification(object):
     def __call__(self, num_update, backbone: torch.nn.Module):
         if self.rank is 0 and num_update > 0 and num_update % self.frequent == 0:
             backbone.eval()
-            self.ver_test(backbone, num_update)
+            results = self.ver_test(backbone, num_update)
             backbone.train()
+            return results
 
 
 class CallBackLogging(object):
-    def __init__(self, frequent, rank, total_step, batch_size, world_size, writer=None):
+    def __init__(self, frequent, rank, total_step, batch_size, world_size, output=None):
         self.frequent: int = frequent
         self.rank: int = rank
         self.time_start = time.time()
         self.total_step: int = total_step
         self.batch_size: int = batch_size
         self.world_size: int = world_size
-        self.writer = writer
+        if self.rank == 0:
+            self.writer = SummaryWriter(log_dir=os.path.join(output, 'tensorboard'))
 
         self.init = False
         self.tic = 0
@@ -64,6 +68,7 @@ class CallBackLogging(object):
     def __call__(self,
                  global_step: int,
                  loss: AverageMeter,
+                 results: list,
                  epoch: int,
                  fp16: bool,
                  learning_rate: float,
@@ -80,9 +85,11 @@ class CallBackLogging(object):
                 time_total = time_now / ((global_step + 1) / self.total_step)
                 time_for_end = time_total - time_now
                 if self.writer is not None:
+                    self.writer.add_scalar('valid/lfw', results[0].detach())
+                    self.writer.add_scalar('valid/cfp_fp', results[1].detach())
                     self.writer.add_scalar('time_for_end', time_for_end, global_step)
                     self.writer.add_scalar('learning_rate', learning_rate, global_step)
-                    self.writer.add_scalar('loss', loss.avg, global_step)
+                    self.writer.add_scalar('train/loss', loss.avg, global_step)
                 if fp16:
                     msg = "Speed %.2f samples/sec   Loss %.4f   LearningRate %.4f   Epoch: %d   Global Step: %d   " \
                           "Fp16 Grad Scale: %2.f   Required: %1.f hours" % (
