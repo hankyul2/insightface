@@ -5,7 +5,7 @@ from easydict import EasyDict as edict
 # mount -t tmpfs -o size=140G  tmpfs /train_tmp
 
 config = edict()
-config.cls_task = False
+config.cls_task = True
 config.loss = "arcface"
 config.network = "r100" # I changed
 config.resume = True # I changed
@@ -19,9 +19,9 @@ config.weight_decay = 5e-4
 config.batch_size = 256
 config.lr = 0.0001  # I changed
 
-config.rec = "/home/hankyul/hdd_ext/face/synthetic"
-config.num_classes = 93979
-config.num_image = 2459393
+config.rec = "/home/hankyul/hdd_ext/face/classifier(n=2)"
+config.num_classes = 2
+config.num_image = 2000000
 config.num_epoch = 25
 config.warmup_epoch = -1
 config.decay_epoch = [10, 16, 22]

@@ -95,8 +95,8 @@ def main(args):
         logging.info(": " + key + " " * num_space + str(value))
 
     val_target = cfg.val_targets
-    callback_verification = CallBackVerification(2000, rank, val_target, cfg.rec)
-    callback_logging = CallBackLogging(50, rank, cfg.total_step, cfg.batch_size, world_size, cfg.output)
+    callback_verification = CallBackVerification(2, rank, val_target, cfg.rec, (112, 112), cfg.cls_task)
+    callback_logging = CallBackLogging(2, rank, cfg.total_step, cfg.batch_size, world_size, cfg.rec)
     callback_checkpoint = CallBackModelCheckpoint(rank, cfg.output)
 
     loss = AverageMeter()
@@ -125,7 +125,7 @@ def main(args):
             opt_backbone.zero_grad()
             opt_pfc.zero_grad()
             loss.update(loss_v, 1)
-            results = callback_verification(global_step, backbone)
+            results = callback_verification(global_step, backbone, module_partial_fc)
             callback_logging(global_step, loss, results, epoch, cfg.fp16, scheduler_backbone.get_last_lr()[0], grad_amp)
             scheduler_backbone.step()
             scheduler_pfc.step()

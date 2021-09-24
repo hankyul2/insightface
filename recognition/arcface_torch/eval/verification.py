@@ -224,10 +224,22 @@ def load_bin(path, image_size):
     return data_list, issame_list
 
 @torch.no_grad()
-def test(data_set, backbone, batch_size, nfolds=10):
+def test(data_set, backbone, batch_size, nfolds=10, fc=None, cls_task=False):
     print('testing verification..')
     data_list = data_set[0]
     issame_list = data_set[1]
+
+    if cls_task and fc is not None:
+        acc = 0
+        half = len(issame_list)//2
+        issame_list = torch.tensor(issame_list[:half] * 2 + issame_list[half:] * 2).long()
+        for start_idx in range(0, len(data_list), 100):
+            end_idx = min(start_idx + 100, len(data_list))
+            x = data_list[0][start_idx:end_idx].to(backbone.device)
+            y = issame_list[start_idx:end_idx].to(backbone.device)
+            acc += fc(backbone(x), fc.weight).max(dim=1)[1].eq(y).float().mean()
+        return 0, 0, acc, 0, 0, []
+
     embeddings_list = []
     time_consumed = 0.0
     for i in range(len(data_list)):
@@ -240,7 +252,7 @@ def test(data_set, backbone, batch_size, nfolds=10):
             _data = data[bb - batch_size: bb]
             time0 = datetime.datetime.now()
             img = ((_data / 255) - 0.5) / 0.5
-            net_out: torch.Tensor = backbone(img)
+            net_out: torch.Tensor = backbone(img.to('cuda'))
             _embeddings = net_out.detach().cpu().numpy()
             time_now = datetime.datetime.now()
             diff = time_now - time0
