@@ -204,6 +204,7 @@ def load_bin(path, image_size):
     except UnicodeDecodeError as e:
         with open(path, 'rb') as f:
             bins, issame_list = pickle.load(f, encoding='bytes')  # py3
+            bins, issame_list = bins[:8000], issame_list[:4000]
     data_list = []
     for flip in [0, 1]:
         data = torch.empty((len(issame_list) * 2, 3, image_size[0], image_size[1]))
@@ -233,12 +234,15 @@ def test(data_set, backbone, batch_size, nfolds=10, fc=None, cls_task=False):
         acc = 0
         half = len(issame_list)//2
         issame_list = torch.tensor(issame_list[:half] * 2 + issame_list[half:] * 2).long()
+        data_list = data_list[0]
+        num_steps = len(data_list) // 100
         for start_idx in range(0, len(data_list), 100):
             end_idx = min(start_idx + 100, len(data_list))
-            x = data_list[0][start_idx:end_idx].to(backbone.device)
+            x = data_list[start_idx:end_idx].to(backbone.device)
             y = issame_list[start_idx:end_idx].to(backbone.device)
+            print(fc.weight.shape)
             acc += fc(backbone(x), fc.weight).max(dim=1)[1].eq(y).float().mean()
-        return 0, 0, acc, 0, 0, []
+        return 0, 0, acc / num_steps * 100, 0, 0, []
 
     embeddings_list = []
     time_consumed = 0.0

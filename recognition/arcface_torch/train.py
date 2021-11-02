@@ -2,6 +2,8 @@ import argparse
 import logging
 import os
 
+os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
+
 import torch
 import torch.distributed as dist
 import torch.nn.functional as F
@@ -42,7 +44,7 @@ def main(args):
     train_sampler = torch.utils.data.distributed.DistributedSampler(train_set, shuffle=True)
     train_loader = DataLoaderX(
         local_rank=local_rank, dataset=train_set, batch_size=cfg.batch_size,
-        sampler=train_sampler, num_workers=2, pin_memory=True, drop_last=True)
+        sampler=train_sampler, num_workers=4, pin_memory=True, drop_last=True)
     backbone = get_model(cfg.network, dropout=0.0, fp16=cfg.fp16, num_features=cfg.embedding_size).to(local_rank)
 
     if cfg.resume:
@@ -95,8 +97,8 @@ def main(args):
         logging.info(": " + key + " " * num_space + str(value))
 
     val_target = cfg.val_targets
-    callback_verification = CallBackVerification(2, rank, val_target, cfg.rec, (112, 112), cfg.cls_task)
-    callback_logging = CallBackLogging(2, rank, cfg.total_step, cfg.batch_size, world_size, cfg.rec)
+    callback_verification = CallBackVerification(2000, rank, val_target, cfg.rec, (224, 224), cfg.cls_task)
+    callback_logging = CallBackLogging(2000, rank, cfg.total_step, cfg.batch_size, world_size, cfg.rec)
     callback_checkpoint = CallBackModelCheckpoint(rank, cfg.output)
 
     loss = AverageMeter()

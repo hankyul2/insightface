@@ -86,8 +86,8 @@ class CallBackLogging(object):
                 time_total = time_now / ((global_step + 1) / self.total_step)
                 time_for_end = time_total - time_now
                 if self.writer is not None:
-                    self.writer.add_scalar('valid/lfw', results[0], global_step)
-                    self.writer.add_scalar('valid/cfp_fp', results[1], global_step)
+                    # self.writer.add_scalar('valid/lfw', results[0], global_step)
+                    self.writer.add_scalar('valid/cfp_fp', results[0], global_step)
                     self.writer.add_scalar('time_for_end', time_for_end, global_step)
                     self.writer.add_scalar('learning_rate', learning_rate, global_step)
                     self.writer.add_scalar('train/loss', loss.avg, global_step)

@@ -1,3 +1,4 @@
+import random
 import numbers
 import os
 import queue as Queue
@@ -69,10 +70,11 @@ class DataLoaderX(DataLoader):
 
 
 class MXFaceDataset(Dataset):
-    def __init__(self, root_dir, local_rank):
+    def __init__(self, root_dir, local_rank=None):
         super(MXFaceDataset, self).__init__()
         self.transform = transforms.Compose(
             [transforms.ToPILImage(),
+             transforms.Resize((224, 224)),
              transforms.RandomHorizontalFlip(),
              transforms.ToTensor(),
              transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
@@ -90,9 +92,17 @@ class MXFaceDataset(Dataset):
         else:
             self.imgidx = np.array(list(self.imgrec.keys))
 
+        # added
+        # path_imgrec = os.path.join(root_dir, 'unmasked.rec')
+        # path_imgidx = os.path.join(root_dir, 'unmasked.idx')
+        # self.imgrec2 = mx.recordio.MXIndexedRecordIO(path_imgidx, path_imgrec, 'r')
+
     def __getitem__(self, index):
         idx = self.imgidx[index]
+        # original
         s = self.imgrec.read_idx(idx)
+        # added
+        # s = self.imgrec.read_idx(idx) if random.random() > 0.5 else self.imgrec2.read_idx(idx)
         header, img = mx.recordio.unpack(s)
         label = header.label
         if not isinstance(label, numbers.Number):

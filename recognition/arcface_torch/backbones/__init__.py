@@ -1,3 +1,7 @@
+import timm
+
+from torch import nn
+
 from .iresnet import iresnet18, iresnet34, iresnet50, iresnet100, iresnet200
 from .mobilefacenet import get_mbf
 
@@ -21,5 +25,9 @@ def get_model(name, **kwargs):
         fp16 = kwargs.get("fp16", False)
         num_features = kwargs.get("num_features", 512)
         return get_mbf(fp16=fp16, num_features=num_features)
+    elif name == 'vit_base_r50_s16_224_in21k':
+        model = timm.create_model('vit_base_r50_s16_224_in21k', pretrained=True)
+        model.head = nn.Identity()
+        return model
     else:
         raise ValueError()
